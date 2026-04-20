@@ -11,20 +11,22 @@
 
 ---
 
-**TL;DR** — This repository releases the dataset, extraction pipeline, and analysis code for an MSc thesis on temporal signed character networks in literary fiction. The corpus comprises **873 works** across **8 genres** and **6 historical epochs**, yielding **109,855 character-relationship observations**. Key findings: fictional social worlds obey real-world network laws (small-world structure, superlinear densification); structural balance is persistently high, temporally flat, and genre-stratified; and entropy trajectory features carry reliable genre signal in classification.
+> **TL;DR** — This dataset comprises **873 temporal signed character networks** extracted from literary works, spanning 8 genres and 6 historical epochs. Each network tracks character relationships (positive / negative / neutral) at chapter-level resolution. Fictional social worlds obey real-world network laws (small-world structure, superlinear densification); structural balance is persistently high, genre-stratified, and temporally stable — with a non-monotonic U-shaped historical arc that peaks in Pre-Modern and 21st-Century fiction.
 
 ---
 
 ## Table of Contents
 
 1. [What Are Temporal Signed Character Networks?](#1-what-are-temporal-signed-character-networks)
-2. [Dataset](#2-dataset)
-3. [Key Findings](#3-key-findings)
-4. [Repository Structure](#4-repository-structure)
-5. [Pipeline Overview](#5-pipeline-overview)
-6. [Getting Started](#6-getting-started)
-7. [Citation](#7-citation)
-8. [License](#8-license)
+2. [Pipeline Overview](#2-pipeline-overview)
+3. [Dataset](#3-dataset)
+4. [Key Findings](#4-key-findings)
+5. [Case Studies: Per-Book Profiles](#5-case-studies-per-book-profiles)
+6. [Metrics and Parameters](#6-metrics-and-parameters)
+7. [Repository Structure](#7-repository-structure)
+8. [Getting Started](#8-getting-started)
+9. [Citation](#9-citation)
+10. [License](#10-license)
 
 ---
 
@@ -43,7 +45,23 @@ Relationships were extracted from publicly available chapter-level book summarie
 
 ---
 
-## 2. Dataset
+## 2. Pipeline Overview
+
+![Pipeline](figures/pipeline_overview.png)
+
+The pipeline proceeds in three stages:
+
+**Stage 1 — Data collection.** Chapter-level narrative summaries and curated character lists are collected from online literary study guides. Each work is stored as two structured plain-text files: a summary file (chapter partitions delimited by `=== PARTITION N: [Title] ===`) and a character file (MAJOR / MINOR sections with canonical names).
+
+**Stage 2 — LLM extraction** (`scripts/network_extraction.ipynb`). Each chapter partition is processed by **Meta Llama-3.3-70B-Instruct** (via AcademicCloud and DeepInfra APIs), yielding signed edge tuples (A, B, σ, t) with σ ∈ {positive, negative, neutral}. The pipeline is crash-resilient (SQLite progress tracking), supports deterministic resume, and rotates across multiple API keys.
+
+**Stage 3 — Network construction and analysis** (`scripts/analysis/network_analysis.ipynb`). The graph builder assembles cumulative signed graphs G₁, …, G_T under a most-recent-wins convention. Per-book 142-dimensional feature vectors are extracted. Analysis blocks cover: static network metrics (A), temporal dynamics (B), structural balance (C), temporal motifs (D), genre classification (E), epoch stratification (F), and per-book case studies (G).
+
+**Processing time:** approximately 132 hours total on consumer hardware (Apple MacBook Pro, M-series chip). No GPU required.
+
+---
+
+## 3. Dataset
 
 ### Download
 
@@ -62,7 +80,7 @@ Or use the files directly from the `data/` folder in this repository.
 | `Character A` | First character (canonical name from curated cast list) |
 | `Character B` | Second character |
 | `Relationship` | `positive`, `negative`, or `neutral` |
-| `source` | Source platform (`sparknotes` or `litcharts`) |
+| `source` | Source corpus (`sparknotes` or `litcharts`) |
 
 ### `combined_metadata_all.csv` — Per-work metadata
 
@@ -78,7 +96,7 @@ Or use the files directly from the `data/` folder in this repository.
 | `Genre_Secondary` | Secondary genre label (where applicable) |
 | `Form` | `Novel`, `Play`, or `Other` |
 | `Remarks` | Curation notes (edge cases, non-fiction flags) |
-| `source` | Source platform |
+| `source` | Source corpus |
 
 ### Corpus at a glance
 
@@ -110,7 +128,7 @@ Or use the files directly from the `data/` folder in this repository.
 
 ---
 
-## 3. Key Findings
+## 4. Key Findings
 
 ### RQ1 — Universal small-world structure and superlinear densification
 
@@ -118,9 +136,9 @@ Of 696 works with sufficient density, **99.3%** satisfy σ_sw > 1 (corpus median
 
 ### RQ2 — Structural balance: persistently high, temporally flat, genre-stratified
 
-The strong-balance index B(τ) lies in [0.65, 0.84] across all genres and narrative positions, far above the B = 0.50 expectation for a randomly signed network. **No genre shows a systematic monotone trend.** Social-structural complexity is established early and maintained.
+The strong-balance index B(τ) lies in [0.65, 0.84] across all genres and narrative positions, far above the B = 0.50 expectation for a randomly signed network. **No genre shows a systematic monotone trend.** Social-structural complexity is established early and maintained throughout.
 
-Genre differences are statistically reliable (Kruskal–Wallis H = 38.8, p = 2.1 × 10⁻⁶, η² = 0.062) but partly attributable to the play/novel form distinction. The global median per-book argmin of B(τ) falls at **τ* = 0.667**, within the Freytag climax window [0.60, 0.75] (KS non-uniformity p < 10⁻⁶).
+Genre differences are statistically reliable (Kruskal–Wallis H = 38.8, p = 2.1 × 10⁻⁶, η² = 0.062) but partly attributable to the play/novel form distinction. The global median per-book argmin of B(τ) falls at **τ\* = 0.667**, within the Freytag climax window [0.60, 0.75] (KS non-uniformity p < 10⁻⁶).
 
 An exploratory **U-shaped epoch effect** (ΔB ≈ 0.10–0.12) reveals that Pre-Modern and 21st-Century works occupy the highest balance band, while 19th- and Early 20th-Century works (realism and modernism) occupy the lowest — a magnitude comparable to the genre effect.
 
@@ -138,8 +156,138 @@ Benchmarked against majority-vote human annotations from [Massey et al. (2015)](
 
 ---
 
-## 4. Repository Structure
+## 5. Case Studies: Per-Book Profiles
 
+Three works were selected to illustrate how corpus-level findings manifest at the level of individual books — one per genre. Each profile shows the temporal evolution of the signed character network, the structural balance trajectory B(τ), and the full per-chapter relationship polarity heatmap. Detailed written analyses are in [Appendix C of the thesis](thesis/Ivanova_2026_Temporal_Dynamics_Social_Balance.pdf).
+
+---
+
+### *Hamlet* — Shakespeare (1623) · Tragedy/Drama · Play
+
+> N = 15 characters · E = 32 edges · T = 20 chapters · σ_sw = 1.86
+
+B(τ) stays at **1.0** from τ = 0.25 to τ = 0.75 — the court of Elsinore locks into a stable two-faction configuration. Five simultaneous sign flips in the final chapter collapse balance to **B = 0.45**, the most dramatic late-narrative structural breakdown in the corpus. Per-book argmin τ\* = 1.0 — an outlier relative to the corpus median of 0.667, reflecting the Shakespearean convention that social dissolution concentrates in the denouement.
+
+| | |
+|---|---|
+| ![Hamlet temporal profile](figures/case_studies/hamlet_profile.png) | ![Hamlet polarity heatmap](figures/case_studies/hamlet_heatmap.png) |
+
+<p align="center">
+  <img src="figures/case_studies/hamlet_network.gif" width="480"
+       alt="Hamlet — temporal evolution of the signed character network"/>
+  <br><i>Temporal evolution of the signed character network across 20 partitions</i>
+</p>
+
+---
+
+### *Pride and Prejudice* — Austen (1813) · Romance/Domestic Fiction · Novel
+
+> N = 14 characters · E = 47 edges · T = 32 chapters · σ_sw = 1.56
+
+The highest positive-edge fraction of the three case studies (f⁺ = 0.51). B(τ) oscillates in [0.50, 0.85] throughout — high and flat in aggregate, but driven by continuous dyadic reorganization at the pair level. The Elizabeth Bennet–Fitzwilliam Darcy edge cycles through four sign states (negative → neutral → negative → positive), the textbook reconciliation arc of the Romance genre. Per-book argmin τ\* = 0.156, consistent with the Romance genre median of 0.654: peak tension arrives early and the narrative resolves it.
+
+| | |
+|---|---|
+| ![Pride and Prejudice temporal profile](figures/case_studies/pride_prejudice_profile.png) | ![Pride and Prejudice polarity heatmap](figures/case_studies/pride_prejudice_heatmap.png) |
+
+<p align="center">
+  <img src="figures/case_studies/pride_prejudice_network.gif" width="480"
+       alt="Pride and Prejudice — temporal evolution of the signed character network"/>
+  <br><i>Temporal evolution of the signed character network across 32 partitions</i>
+</p>
+
+---
+
+### *Great Expectations* — Dickens (1861) · Coming-of-Age/Bildungsroman · Novel
+
+> N = 19 characters · E = 50 edges · T = 59 chapters · σ_sw = 1.90
+
+The corpus's clearest U-shaped B(τ) arc. Balance begins at 0.833, drops to a minimum of **0.400** at τ\* = 0.22 (Pip's period of maximum social dislocation), then recovers monotonically to **0.833** by τ = 1.0. The Estella–Pip edge records five sign changes across 59 chapters — the highest dyadic volatility of the three case studies. Degree entropy grows from H = 2.0 to 4.0, reflecting Pip's progressive social integration as he moves from the marshes to London.
+
+| | |
+|---|---|
+| ![Great Expectations temporal profile](figures/case_studies/great_expectations_profile.png) | ![Great Expectations polarity heatmap](figures/case_studies/great_expectations_heatmap.png) |
+
+<p align="center">
+  <img src="figures/case_studies/great_expectations_network.gif" width="480"
+       alt="Great Expectations — temporal evolution of the signed character network"/>
+  <br><i>Temporal evolution of the signed character network across 59 partitions</i>
+</p>
+
+---
+
+## 6. Metrics and Parameters
+
+### Static network metrics (computed on the terminal cumulative graph G_T)
+
+| Metric | Symbol | Description |
+|---|---|---|
+| Cast size | N | Number of distinct characters |
+| Edge count | E | Number of unique character pairs |
+| Density | δ = 2E / N(N−1) | Fraction of possible edges realized |
+| Avg. clustering | C_avg | Mean local clustering coefficient |
+| Avg. path length | L | Mean shortest path over the largest connected component |
+| Small-world coeff. | σ_sw = (C/C_rand) / (L/L_rand) | σ_sw > 1 indicates small-world structure |
+| Positive fraction | f⁺ | Fraction of edges labeled positive |
+| Negative fraction | f⁻ | Fraction of edges labeled negative |
+
+### Temporal network metrics (computed at each cumulative snapshot G_1 … G_T)
+
+| Metric | Symbol | Description |
+|---|---|---|
+| Network density | D(τ) | δ evaluated at narrative position τ |
+| Positive density | D⁺(τ) | n_pos(τ) / C(N,2) |
+| Negative density | D⁻(τ) | n_neg(τ) / C(N,2) |
+| Alliance ratio | R⁺(τ) = D⁺/(D⁺+D⁻) | Fraction of signed edges that are positive |
+| Degree entropy | H(τ) | Shannon entropy of the degree distribution |
+| Avg. clustering | C(τ) | Mean local clustering at snapshot τ |
+| Densification exponent | α (from E ∝ N^α) | α > 1 = superlinear densification |
+| Edge volatility | — | Fraction of edges that change polarity between consecutive chapters |
+| Burstiness | κ = (σ_Δ − μ_Δ)/(σ_Δ + μ_Δ) | κ < 0 = more regular than Poisson; κ > 0 = bursty |
+
+### Structural balance metrics
+
+| Metric | Description |
+|---|---|
+| Balance index | B(τ) = fraction of closed signed triads that are balanced (+++ or +−−) |
+| Weak balance | B_w(τ) = fraction of triads satisfying the weaker Harary (1953) criterion (+−− only) |
+| Minimum balance position | τ\* = argmin B(τ) — narrative position of peak social tension |
+| End-minus-start balance | ΔB = B(τ=1) − B(τ=0) |
+| Triad types | f_+++ , f_++− , f_+−− , f_−−− (fractions of the four signed triad types) |
+
+### Temporal interaction motifs
+
+Length-3 polarity sequences on recurring character pairs (neutral edges excluded):
+
+| Motif | Label | Interpretation |
+|---|---|---|
+| `+++` | Stable alliance | Relationship maintains positive polarity |
+| `---` | Stable enmity | Relationship maintains negative polarity |
+| `+--` | Alliance collapse | Friendship turns to lasting enmity |
+| `--+` | Reconciliation | Conflict resolves to positive |
+| `++-` | Drift to conflict | Friendship gradually turns antagonistic |
+| `-++` | Drift to alliance | Conflict gradually resolves |
+| `+-+` | Betrayal–reconciliation | Temporary rupture of an alliance |
+| `-+-` | Truce–relapse | Temporary resolution of a conflict |
+
+### Key parameters
+
+| Parameter | Value | Description |
+|---|---|---|
+| Narrative time bins | 10 equispaced bins at τ ∈ {0.05, 0.15, …, 0.95} | Used for trajectory interpolation |
+| Balance threshold | ≥ 5 signed triads per snapshot | Minimum for B(τ) to be computed |
+| Small-world threshold | σ_sw > 1 | Condition for small-world classification |
+| Motif length | 3 | Length of polarity sequences extracted |
+| LLM temperature | 0.1 | Near-deterministic extraction |
+| CV folds | 10-fold stratified | Genre classification cross-validation |
+| RF trees | 500 | Random Forest ensemble size |
+| Feature vector | 142 dimensions | 7 metrics × 19 features + 9 scalar features |
+
+---
+
+## 7. Repository Structure
+
+```
 litnet-balance/
 ├── README.md                          # This file
 ├── LICENSE                            # MIT License (code)
@@ -168,44 +316,36 @@ litnet-balance/
 │   ├── balance_by_epoch.png
 │   ├── smallworld_sigma_distribution.png
 │   └── case_studies/
-│       ├── hamlet_profile.png / hamlet_heatmap.png
-│       ├── pride_prejudice_profile.png / pride_prejudice_heatmap.png
-│       └── great_expectations_profile.png / great_expectations_heatmap.png
+│       ├── hamlet_profile.png
+│       ├── hamlet_heatmap.png
+│       ├── hamlet_network.gif
+│       ├── pride_prejudice_profile.png
+│       ├── pride_prejudice_heatmap.png
+│       ├── pride_prejudice_network.gif
+│       ├── great_expectations_profile.png
+│       ├── great_expectations_heatmap.png
+│       └── great_expectations_network.gif
 │
 └── thesis/
-└── Ivanova_2026_Temporal_Dynamics_Social_Balance.pdf
+    └── Ivanova_2026_Temporal_Dynamics_Social_Balance.pdf
+```
 
 ---
 
-## 5. Pipeline Overview
-
-![Pipeline](figures/pipeline_overview.png)
-
-The pipeline proceeds in three stages:
-
-**Stage 1 — Data collection.** Chapter-level narrative summaries and curated character lists are collected from online literary study guides. Each work is saved as two structured plain-text files: a summary file (partition-delimited per chapter) and a character file (MAJOR/MINOR sections).
-
-**Stage 2 — LLM extraction** (`scripts/network_extraction.ipynb`). Each chapter partition is processed by **Meta Llama-3.3-70B-Instruct** (via AcademicCloud and DeepInfra APIs), yielding signed edge tuples (A, B, σ, t) with σ ∈ {positive, negative, neutral}. The pipeline is crash-resilient (SQLite progress tracking), supports incremental resume, and rotates across multiple API keys.
-
-**Stage 3 — Network construction and analysis** (`scripts/analysis/network_analysis.ipynb`). The graph builder assembles cumulative signed graphs G₁, …, G_T under a most-recent-wins convention. Per-book 142-dimensional feature vectors are extracted. Analysis blocks cover: static network metrics (A), temporal dynamics (B), structural balance (C), temporal motifs (D), densification (D), genre classification (E), epoch stratification (F), and case studies (G).
-
-**Processing time:** approximately 132 hours total on consumer hardware (Apple MacBook Pro, M-series chip). No GPU required.
-
----
-
-## 6. Getting Started
+## 8. Getting Started
 
 ### Requirements
 
 Python 3.12. Install dependencies:
 
 ```bash
-pip install pandas numpy networkx scikit-learn matplotlib seaborn tqdm openai sqlite3
+pip install -r scripts/requirements.txt
 ```
 
-Or, if you have a `requirements.txt`:
+Or individually:
+
 ```bash
-pip install -r requirements.txt
+pip install pandas numpy networkx scikit-learn matplotlib seaborn tqdm openai
 ```
 
 ### Load the dataset
@@ -220,23 +360,34 @@ df = pd.read_csv("data/combined_networks_all.csv")
 meta = pd.read_csv("data/combined_metadata_all.csv")
 
 # Merge for analysis
-df_merged = df.merge(meta.rename(columns={"Book": "BookTitle"}),
-                     left_on="Book",
-                     right_on="BookTitle",
-                     how="left")
+meta["BookKey"] = meta["Author"] + ": " + meta["Book"]
+df_merged = df.merge(meta, left_on="Book", right_on="BookKey", how="left")
 
 print(f"Corpus: {df['Book'].nunique()} works, {len(df):,} edges")
 ```
 
 ### Reproduce the analysis
 
-Open `scripts/analysis/CharDyNet_Analysis.ipynb` in Jupyter. Run blocks in order (Block 0 → 1 → A → B → C → D → E → F → G). Each block is self-contained with section headers and inline comments.
+Open `scripts/analysis/network_analysis.ipynb` in Jupyter. Run blocks in order:
+**Block 0 → 1 → A → B → C → D → E → F → H → G**
 
-**Note on API keys:** To re-run extraction (`scripts/7_extract_networks.py`), you will need your own AcademicCloud or DeepInfra API key. Set it as an environment variable: `export OPENAI_API_KEY=your_key_here`. Do not hardcode keys in the script.
+Each block is self-contained with section headers and inline comments.
+Before running, edit the two path variables at the top of Block 0 to point to your local copies of `data/combined_networks_all.csv` and `data/combined_metadata_all.csv`.
+
+### Re-run extraction
+
+Open `scripts/network_extraction.ipynb`. Set API keys as environment variables before running — do not hardcode them:
+
+```bash
+export ACADEMICCLOUD_KEY_1="your_key_here"
+export DEEPINFRA_KEY_1="your_key_here"
+```
+
+See `scripts/README.md` for full setup instructions and supported endpoints.
 
 ---
 
-## 7. Citation
+## 9. Citation
 
 If you use this dataset or code, please cite:
 
@@ -254,10 +405,10 @@ If you use this dataset or code, please cite:
 
 ---
 
-## 8. License
+## 10. License
 
 **Code** (`scripts/`): [MIT License](LICENSE)
 
 **Dataset** (`data/`): [Creative Commons Attribution 4.0 International (CC BY 4.0)](LICENSE-DATA.md)
 
-**Thesis PDF** (`thesis/`): © Larisa Ivanova, 2026. All rights reserved. The PDF is shared here for academic reference only.
+**Thesis PDF** (`thesis/`): © Larisa Ivanova, 2026. All rights reserved. Shared here for academic reference only.
