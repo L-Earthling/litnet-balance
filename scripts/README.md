@@ -1,49 +1,56 @@
 # Scripts
 
-This folder contains the extraction pipeline and analysis code.
+This folder contains the LLM extraction pipeline and analysis code for the thesis.
 
 ## Files
 
-### `6_create_text_structure.py`
-Structures raw LitCharts text content into the standardized partition format required by the extraction pipeline. Each book's content is split into chapter partitions delimited by `=== PARTITION N: [Title] ===`.
+### `network_extraction.ipynb` — LLM extraction pipeline
 
-**Usage:**
+Converts structured chapter-level narrative summaries and curated character lists
+into per-book signed character-relationship networks.
+
+**Input per book** (one subfolder per literary work):
+- `<book_slug>_clean.txt` — chapter summaries, partitioned with `=== PARTITION N: [Title] ===` delimiters
+- `<book_slug>_characters_clean.txt` — curated cast list (MAJOR / MINOR sections)
+
+**Output per book**:
+- `<book_slug>_network.csv` — signed edge tuples `(Chapter, Character A, Character B, Relationship)`
+- `<book_slug>_processing_log.csv` — per-partition audit trail
+
+**Key features**:
+- Multi-key API rotation (round-robin across up to 6 keys)
+- SQLite-backed progress tracking — crash-resilient, supports deterministic resume
+- Incremental CSV writes after every partition (no data loss on interruption)
+- Sequential and multi-threaded execution modes
+
+**API keys**: set as environment variables before running — do not hardcode.
+
 ```bash
-python 6_create_text_structure.py --input_dir /path/to/raw_text --output_dir /path/to/structured
+export ACADEMICCLOUD_KEY_1="your_key_here"
+export DEEPINFRA_KEY_1="your_key_here"
+# ... add further keys as needed
 ```
 
-### `7_extract_networks.py`
-LLM-based extraction pipeline. Processes each chapter partition using Meta Llama-3.3-70B-Instruct to extract signed character-relationship tuples (A, B, σ, t).
+**Model**: Meta Llama-3.3-70B-Instruct via AcademicCloud (`chat-ai.academiccloud.de/v1`)
+or DeepInfra (`api.deepinfra.com/v1/openai`).
 
-**Features:**
-- Multi-key API rotation (round-robin across 6 keys)
-- SQLite progress tracking (crash-resilient, supports resume)
-- Incremental CSV writes (no data loss on interruption)
-- Configurable rate limiting (13 requests/minute per key)
+### `analysis/network_analysis.ipynb`
+Reproduces all empirical results, figures, and tables reported in the thesis. Run blocks in order: **0 → 1 → A → B → C → D → E → F → H → G**.
 
-**Requirements:**
-- AcademicCloud API key (`chat-ai.academiccloud.de/v1`) or DeepInfra API key (`api.deepinfra.com/v1/openai`)
-- Set your key as an environment variable: `export OPENAI_API_KEY=your_key_here`
+| Block | Content | Thesis section |
+|---|---|---|
+| 0 | Setup: paths, config, colour scheme | — |
+| 1 | Data loading, metadata join, corpus overview | §III |
+| A | Static network metrics (small-world, polarity) | §VII.1 |
+| B | Temporal dynamics (density, clustering, entropy) | §VII.2–3 |
+| C | Structural balance B(τ), argmin, triad census | §VII.4 |
+| D | Temporal motifs, persistence, burstiness, densification | §VII.5 |
+| E | Genre classification (Random Forest, feature importance, t-SNE) | §VII.6 |
+| F | Historical epoch stratification, form-stratified robustness | §VII.7 |
+| H | Centrality rank stability, network polarization | — |
+| G | Per-book figure and summary outputs | Appendix C |
 
-**Usage:**
-```bash
-python 7_extract_networks.py --books_dir /path/to/structured_text --output_dir /path/to/networks
-```
-
-### `analysis/CharDyNet_Analysis.ipynb`
-Full analysis notebook. Run blocks in order:
-
-| Block | Content |
-|---|---|
-| Block 0 | Setup: directories, colour scheme, logging |
-| Block 1 | Corpus loading and static network metrics |
-| Block A | Aggregate static analysis (Table VII.1, Figure VII.1) |
-| Block B | Temporal network metrics (density, polarity, clustering, entropy) |
-| Block C | Structural balance B(τ): trajectories, argmin, triad census |
-| Block D | Temporal motifs and densification |
-| Block E | Genre classification (Random Forest, baselines, feature importance) |
-| Block F | Epoch stratification and form-stratified robustness checks |
-| Block G | Per-book case study outputs |
+**Before running:** edit the two path variables at the top of Block 0 to point to `data/combined_networks_all.csv` and `data/combined_metadata_all.csv`.
 
 ## Setup
 
