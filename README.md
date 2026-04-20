@@ -152,10 +152,10 @@ litnet-balance/
 │
 ├── scripts/
 │   ├── README.md                      # Script documentation and setup guide
-│   ├── 6_create_text_structure.py     # Text structuring for LitCharts content
-│   ├── 7_extract_networks.py          # LLM extraction pipeline (key rotation, crash resilience)
+│   ├── network_extraction.ipynb       # LLM extraction pipeline (key rotation, crash resilience)
+│   ├── requirements.txt               # Python dependencies
 │   └── analysis/
-│       └── CharDyNet_Analysis.ipynb   # Full analysis notebook (873 books)
+│       └── network_analysis.ipynb     # Full analysis notebook (873 books)
 │
 ├── figures/
 │   ├── README.md
@@ -185,9 +185,9 @@ The pipeline proceeds in three stages:
 
 **Stage 1 — Data collection.** Chapter-level narrative summaries and curated character lists are collected from online literary study guides. Each work is saved as two structured plain-text files: a summary file (partition-delimited per chapter) and a character file (MAJOR/MINOR sections).
 
-**Stage 2 — LLM extraction** (`scripts/7_extract_networks.py`). Each chapter partition is processed by **Meta Llama-3.3-70B-Instruct** (via AcademicCloud and DeepInfra APIs), yielding signed edge tuples (A, B, σ, t) with σ ∈ {positive, negative, neutral}. The pipeline is crash-resilient (SQLite progress tracking), supports incremental resume, and rotates across multiple API keys.
+**Stage 2 — LLM extraction** (`scripts/network_extraction.ipynb`). Each chapter partition is processed by **Meta Llama-3.3-70B-Instruct** (via AcademicCloud and DeepInfra APIs), yielding signed edge tuples (A, B, σ, t) with σ ∈ {positive, negative, neutral}. The pipeline is crash-resilient (SQLite progress tracking), supports incremental resume, and rotates across multiple API keys.
 
-**Stage 3 — Network construction and analysis** (`scripts/analysis/CharDyNet_Analysis.ipynb`). The graph builder assembles cumulative signed graphs G₁, …, G_T under a most-recent-wins convention. Per-book 142-dimensional feature vectors are extracted. Analysis blocks cover: static network metrics (A), temporal dynamics (B), structural balance (C), temporal motifs (D), densification (D), genre classification (E), epoch stratification (F), and case studies (G).
+**Stage 3 — Network construction and analysis** (`scripts/analysis/network_analysis.ipynb`). The graph builder assembles cumulative signed graphs G₁, …, G_T under a most-recent-wins convention. Per-book 142-dimensional feature vectors are extracted. Analysis blocks cover: static network metrics (A), temporal dynamics (B), structural balance (C), temporal motifs (D), densification (D), genre classification (E), epoch stratification (F), and case studies (G).
 
 **Processing time:** approximately 132 hours total on consumer hardware (Apple MacBook Pro, M-series chip). No GPU required.
 
